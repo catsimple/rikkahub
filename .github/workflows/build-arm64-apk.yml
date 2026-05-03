@@ -29,7 +29,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build ARM64 Release APK
-        run: ./gradlew app:assembleRelease -x test
+        run: ./gradlew app:assembleRelease -x test -PskipFirebase=true
         env:
           GRADLE_OPTS: "-Xmx2048m"
 
