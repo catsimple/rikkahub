@@ -58,7 +58,7 @@ class FilesManager(
         val resolvedMime = if (convertedHeic) "image/jpeg" else sourceMime ?: "application/octet-stream"
         val target = createTargetFile(FileFolders.UPLOAD, resolvedName, resolvedMime)
         if (convertedHeic) {
-            val jpegBytes = decodeHeicUriToJpegBytes(uri)
+            val jpegBytes = decodeImageUriToJpegBytes(uri)
                 ?: error("Failed to decode HEIC image from $uri")
             target.outputStream().use { output ->
                 output.write(jpegBytes)
@@ -167,7 +167,7 @@ class FilesManager(
                     file.createNewFile()
                 }
                 if (convertedHeic) {
-                    val jpegBytes = decodeHeicUriToJpegBytes(uri)
+                    val jpegBytes = decodeImageUriToJpegBytes(uri)
                         ?: error("Failed to decode HEIC image from $uri")
                     file.outputStream().use { output ->
                         output.write(jpegBytes)
@@ -432,20 +432,22 @@ class FilesManager(
             ext == "heic" || ext == "heif"
     }
 
-    private fun decodeHeicUriToJpegBytes(uri: Uri): ByteArray? = runCatching {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return@runCatching null
-        val source = ImageDecoder.createSource(context.contentResolver, uri)
-        val bitmap = ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
-            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-        }
-        try {
-            bitmap.compressToJpeg()
-        } finally {
-            bitmap.recycle()
-        }
-    }.onFailure {
-        Log.e(TAG, "decodeHeicUriToJpegBytes: Failed to decode $uri", it)
-    }.getOrNull()
+    suspend fun decodeImageUriToJpegBytes(uri: Uri): ByteArray? = withContext(Dispatchers.IO) {
+        runCatching {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return@runCatching null
+            val source = ImageDecoder.createSource(context.contentResolver, uri)
+            val bitmap = ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            }
+            try {
+                bitmap.compressToJpeg()
+            } finally {
+                bitmap.recycle()
+            }
+        }.onFailure {
+            Log.e(TAG, "decodeHeicUriToJpegBytes: Failed to decode $uri", it)
+        }.getOrNull()
+    }
 
     private fun decodeHeicBytesToJpeg(bytes: ByteArray): ByteArray? = runCatching {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return@runCatching null
@@ -544,8 +546,12 @@ class FilesManager(
     private fun guessMimeType(file: File, fileName: String): String {
         val ext = fileName.substringAfterLast('.', "").lowercase()
         if (ext.isNotEmpty()) {
-            return MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
-                ?: "application/octet-stream"
+            return when (ext) {
+                "heic" -> "image/heic"
+                "heif" -> "image/heif"
+                else -> MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+                    ?: "application/octet-stream"
+            }
         }
         return sniffMimeType(file)
     }
@@ -573,6 +579,8 @@ class FilesManager(
         ) {
             return "image/webp"
         }
+        if (header.sliceArray(4..11).toString(Charsets.US_ASCII) == "ftypheic") return "image/heic"
+        if (header.sliceArray(4..11).toString(Charsets.US_ASCII) == "ftypheif") return "image/heif"
 
         // Heuristic: treat mostly printable UTF-8 as text/plain
         val textSample = runCatching {

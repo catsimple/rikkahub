@@ -174,6 +174,7 @@ fun ChatInput(
     val toaster = LocalToaster.current
     val assistant = settings.getCurrentAssistant()
     val hazeTintColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val imagePickerScope = rememberCoroutineScope()
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -270,16 +271,34 @@ fun ChatInput(
                     dismissExpand()
                 } else {
                     if (selectedUris.size == 1) {
-                        val tempFile = File(context.appTempFolder, "pick_temp_${System.currentTimeMillis()}.jpg")
-                        runCatching {
-                            context.contentResolver.openInputStream(selectedUris.first())?.use { input ->
-                                tempFile.outputStream().use { output -> input.copyTo(output) }
+                        val sourceUri = selectedUris.first()
+                        val sourceName = filesManager.getFileNameFromUri(sourceUri) ?: sourceUri.lastPathSegment ?: "file"
+                        val sourceMime = filesManager.getFileMimeType(sourceUri)
+                        val shouldConvertHeic = settings.heicToJpg && (
+                            sourceMime?.startsWith("image/heic", ignoreCase = true) == true ||
+                                sourceMime?.startsWith("image/heif", ignoreCase = true) == true ||
+                                sourceName.substringAfterLast('.', "").equals("heic", ignoreCase = true) ||
+                                sourceName.substringAfterLast('.', "").equals("heif", ignoreCase = true)
+                            )
+                        imagePickerScope.launch {
+                            val tempFile = File(context.appTempFolder, "pick_temp_${System.currentTimeMillis()}.jpg")
+                            runCatching {
+                                if (shouldConvertHeic) {
+                                    val jpegBytes = filesManager.decodeImageUriToJpegBytes(sourceUri)
+                                        ?: error("Failed to decode HEIC image from $sourceUri")
+                                    tempFile.writeBytes(jpegBytes)
+                                } else {
+                                    context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                                        tempFile.outputStream().use { output -> input.copyTo(output) }
+                                    }
+                                }
+                                preCropTempFile = tempFile
+                                launchImageCrop(tempFile.toUri())
+                            }.onFailure {
+                                Log.e("ImagePickButton", "Failed to prepare image for crop, falling back", it)
+                                tempFile.delete()
+                                launchImageCrop(sourceUri)
                             }
-                            preCropTempFile = tempFile
-                            launchImageCrop(tempFile.toUri())
-                        }.onFailure {
-                            Log.e("ImagePickButton", "Failed to copy image to temp, falling back", it)
-                            launchImageCrop(selectedUris.first())
                         }
                     } else {
                         state.addImages(filesManager.createChatFilesByContents(selectedUris))
