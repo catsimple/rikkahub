@@ -427,8 +427,8 @@ class FilesManager(
         if (!settingsStore.settingsFlow.value.heicToJpg) return false
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
         val ext = displayName.substringAfterLast('.', "").lowercase()
-        return mimeType?.equals("image/heic", ignoreCase = true) == true ||
-            mimeType?.equals("image/heif", ignoreCase = true) == true ||
+        return mimeType?.startsWith("image/heic", ignoreCase = true) == true ||
+            mimeType?.startsWith("image/heif", ignoreCase = true) == true ||
             ext == "heic" || ext == "heif"
     }
 
@@ -438,7 +438,11 @@ class FilesManager(
         val bitmap = ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
             decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
         }
-        bitmap.compressToJpeg()
+        try {
+            bitmap.compressToJpeg()
+        } finally {
+            bitmap.recycle()
+        }
     }.onFailure {
         Log.e(TAG, "decodeHeicUriToJpegBytes: Failed to decode $uri", it)
     }.getOrNull()
@@ -449,7 +453,11 @@ class FilesManager(
         val bitmap = ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
             decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
         }
-        bitmap.compressToJpeg()
+        try {
+            bitmap.compressToJpeg()
+        } finally {
+            bitmap.recycle()
+        }
     }.onFailure {
         Log.e(TAG, "decodeHeicBytesToJpeg: Failed to decode HEIC bytes", it)
     }.getOrNull()
