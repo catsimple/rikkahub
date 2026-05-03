@@ -715,6 +715,10 @@
   <string name="setting_page_extensions">扩展管理</string>
   <string name="setting_page_extensions_desc">管理提示词注入、技能等扩展</string>
   <string name="setting_page_general_settings">通用设置</string>
+  <string name="setting_page_advanced_settings">高级设置</string>
+  <string name="setting_page_advanced_settings_desc">配置高级文件处理选项</string>
+  <string name="setting_page_heic_to_jpg">HEIC 转 JPG</string>
+  <string name="setting_page_heic_to_jpg_desc">开启后，导入的 HEIC 图片会通过系统图片解码器自动转换为 JPG</string>
   <string name="setting_page_interaction_notification_settings">互动与通知</string>
   <string name="setting_page_mcp">MCP</string>
   <string name="setting_page_mcp_desc">配置MCP服务器</string>
@@ -979,4 +983,3 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="setting_page_built_in_tools_image_generation">图像生成</string>
   <string name="setting_page_built_in_tools_image_generation_desc">启用图像生成功能</string>
 </resources>
-

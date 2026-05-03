@@ -717,6 +717,10 @@
   <string name="setting_page_extensions">Extensions</string>
   <string name="setting_page_extensions_desc">Manage prompt injections, skills and more</string>
   <string name="setting_page_general_settings">General Settings</string>
+  <string name="setting_page_advanced_settings">Advanced Settings</string>
+  <string name="setting_page_advanced_settings_desc">Configure advanced file handling options</string>
+  <string name="setting_page_heic_to_jpg">HEIC to JPG</string>
+  <string name="setting_page_heic_to_jpg_desc">Automatically convert imported HEIC images to JPG using the system image decoder</string>
   <string name="setting_page_interaction_notification_settings">Interaction &amp;amp; Notifications</string>
   <string name="setting_page_mcp">MCP</string>
   <string name="setting_page_mcp_desc">Configure MCP Servers</string>
@@ -977,4 +981,3 @@
   <string name="reasoning_picker_title">Adjust Model Thinking Depth</string>
   <string name="reasoning_picker_hint">Not all models support depth adjustment. Refer to the model and provider documentation.</string>
 </resources>
-

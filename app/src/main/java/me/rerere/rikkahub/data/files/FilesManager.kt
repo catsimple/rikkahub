@@ -1,8 +1,10 @@
 package me.rerere.rikkahub.data.files
 
 import android.content.Context
+import android.graphics.ImageDecoder
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.os.Build
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
@@ -24,6 +26,7 @@ import me.rerere.ai.ui.UIMessage
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.common.android.Logging
 import me.rerere.rikkahub.AppScope
+import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.db.entity.ManagedFileEntity
 import me.rerere.rikkahub.data.repository.FilesRepository
 import me.rerere.rikkahub.utils.exportImage
@@ -37,6 +40,7 @@ class FilesManager(
     private val context: Context,
     private val repository: FilesRepository,
     private val appScope: AppScope,
+    private val settingsStore: SettingsStore,
 ) {
     companion object {
         private const val TAG = "FilesManager"
@@ -47,12 +51,23 @@ class FilesManager(
         displayName: String? = null,
         mimeType: String? = null,
     ): ManagedFileEntity = withContext(Dispatchers.IO) {
-        val resolvedName = displayName ?: getFileNameFromUri(uri) ?: "file"
-        val resolvedMime = mimeType ?: getFileMimeType(uri) ?: "application/octet-stream"
+        val sourceName = displayName ?: getFileNameFromUri(uri) ?: "file"
+        val sourceMime = mimeType ?: getFileMimeType(uri)
+        val convertedHeic = shouldConvertHeicToJpg(sourceName, sourceMime)
+        val resolvedName = if (convertedHeic) sourceName.replaceExtension("jpg") else sourceName
+        val resolvedMime = if (convertedHeic) "image/jpeg" else sourceMime ?: "application/octet-stream"
         val target = createTargetFile(FileFolders.UPLOAD, resolvedName, resolvedMime)
-        context.contentResolver.openInputStream(uri)?.use { input ->
+        if (convertedHeic) {
+            val jpegBytes = decodeHeicUriToJpegBytes(uri)
+                ?: error("Failed to decode HEIC image from $uri")
             target.outputStream().use { output ->
-                input.copyTo(output)
+                output.write(jpegBytes)
+            }
+        } else {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                target.outputStream().use { output ->
+                    input.copyTo(output)
+                }
             }
         }
         val now = System.currentTimeMillis()
@@ -74,15 +89,24 @@ class FilesManager(
         displayName: String,
         mimeType: String = "application/octet-stream",
     ): ManagedFileEntity = withContext(Dispatchers.IO) {
-        val target = createTargetFile(FileFolders.UPLOAD, displayName, mimeType)
-        target.writeBytes(bytes)
+        val convertedHeic = shouldConvertHeicToJpg(displayName, mimeType)
+        val resolvedName = if (convertedHeic) displayName.replaceExtension("jpg") else displayName
+        val resolvedMime = if (convertedHeic) "image/jpeg" else mimeType
+        val target = createTargetFile(FileFolders.UPLOAD, resolvedName, resolvedMime)
+        if (convertedHeic) {
+            val jpegBytes = decodeHeicBytesToJpeg(bytes)
+                ?: error("Failed to decode HEIC image from bytes")
+            target.writeBytes(jpegBytes)
+        } else {
+            target.writeBytes(bytes)
+        }
         val now = System.currentTimeMillis()
         repository.insert(
             ManagedFileEntity(
                 folder = FileFolders.UPLOAD,
                 relativePath = "${FileFolders.UPLOAD}/${target.name}",
-                displayName = displayName,
-                mimeType = mimeType,
+                displayName = resolvedName,
+                mimeType = resolvedMime,
                 sizeBytes = target.length(),
                 createdAt = now,
                 updatedAt = now,
@@ -134,20 +158,31 @@ class FilesManager(
             runCatching {
                 val sourceName = getFileNameFromUri(uri) ?: uri.lastPathSegment ?: "file"
                 val sourceMime = getFileMimeType(uri)
-                val fileName = buildUuidFileName(displayName = sourceName, mimeType = sourceMime)
+                val convertedHeic = shouldConvertHeicToJpg(sourceName, sourceMime)
+                val resolvedName = if (convertedHeic) sourceName.replaceExtension("jpg") else sourceName
+                val resolvedMime = if (convertedHeic) "image/jpeg" else sourceMime
+                val fileName = buildUuidFileName(displayName = resolvedName, mimeType = resolvedMime)
                 val file = dir.resolve(fileName)
                 if (!file.exists()) {
                     file.createNewFile()
                 }
-                val inputStream = context.contentResolver.openInputStream(uri)
-                    ?: error("Failed to open input stream for $uri")
-                inputStream.use { input ->
+                if (convertedHeic) {
+                    val jpegBytes = decodeHeicUriToJpegBytes(uri)
+                        ?: error("Failed to decode HEIC image from $uri")
                     file.outputStream().use { output ->
-                        input.copyTo(output)
+                        output.write(jpegBytes)
+                    }
+                } else {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                        ?: error("Failed to open input stream for $uri")
+                    inputStream.use { input ->
+                        file.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
                     }
                 }
-                val guessedMime = sourceMime ?: guessMimeType(file, sourceName)
-                trackUploadFile(file = file, displayName = sourceName, mimeType = guessedMime)
+                val guessedMime = resolvedMime ?: guessMimeType(file, resolvedName)
+                trackUploadFile(file = file, displayName = resolvedName, mimeType = guessedMime)
                 newUris.add(file.toUri())
             }.onFailure {
                 it.printStackTrace()
@@ -388,6 +423,37 @@ class FilesManager(
         return "${Uuid.random()}.$ext"
     }
 
+    private fun shouldConvertHeicToJpg(displayName: String, mimeType: String?): Boolean {
+        if (!settingsStore.settingsFlow.value.heicToJpg) return false
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
+        val ext = displayName.substringAfterLast('.', "").lowercase()
+        return mimeType?.equals("image/heic", ignoreCase = true) == true ||
+            mimeType?.equals("image/heif", ignoreCase = true) == true ||
+            ext == "heic" || ext == "heif"
+    }
+
+    private fun decodeHeicUriToJpegBytes(uri: Uri): ByteArray? = runCatching {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return@runCatching null
+        val source = ImageDecoder.createSource(context.contentResolver, uri)
+        val bitmap = ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+        }
+        bitmap.compressToJpeg()
+    }.onFailure {
+        Log.e(TAG, "decodeHeicUriToJpegBytes: Failed to decode $uri", it)
+    }.getOrNull()
+
+    private fun decodeHeicBytesToJpeg(bytes: ByteArray): ByteArray? = runCatching {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return@runCatching null
+        val source = ImageDecoder.createSource(java.nio.ByteBuffer.wrap(bytes))
+        val bitmap = ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+        }
+        bitmap.compressToJpeg()
+    }.onFailure {
+        Log.e(TAG, "decodeHeicBytesToJpeg: Failed to decode HEIC bytes", it)
+    }.getOrNull()
+
     private fun trackUploadFile(file: File, displayName: String, mimeType: String) {
         val relativePath = "${FileFolders.UPLOAD}/${file.name}"
         appScope.launch(Dispatchers.IO) {
@@ -542,6 +608,20 @@ class FilesManager(
     private fun Bitmap.compressToPng(): ByteArray = ByteArrayOutputStream().use {
         compress(Bitmap.CompressFormat.PNG, 100, it)
         it.toByteArray()
+    }
+
+    private fun Bitmap.compressToJpeg(): ByteArray = ByteArrayOutputStream().use {
+        compress(Bitmap.CompressFormat.JPEG, 95, it)
+        it.toByteArray()
+    }
+
+    private fun String.replaceExtension(newExtension: String): String {
+        val baseName = substringBeforeLast('.', this)
+        return if (contains('.')) {
+            "$baseName.$newExtension"
+        } else {
+            "$this.$newExtension"
+        }
     }
 }
 
