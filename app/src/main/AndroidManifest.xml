@@ -120,6 +120,22 @@
         android:value="androidx.startup"
         tools:node="remove" />
     </provider>
+    <!-- 禁用 Firebase 自动初始化 -->
+    <meta-data
+        android:name="firebase_analytics_collection_enabled"
+        android:value="false" />
+    <meta-data
+        android:name="google_analytics_adid_collection_enabled"
+        android:value="false" />
+    <meta-data
+        android:name="firebase_crashlytics_collection_enabled"
+        android:value="false" />
+    <!-- 禁用 Firebase 内容提供者 (防止它自动根据 JSON 初始化) -->
+    <provider
+        android:name="com.google.firebase.provider.FirebaseInitProvider"
+        android:authorities="${applicationId}.firebaseinitprovider"
+        android:exported="false"
+        tools:node="remove" />
   </application>
 
 </manifest>
