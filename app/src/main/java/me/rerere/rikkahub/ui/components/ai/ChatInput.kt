@@ -216,8 +216,10 @@ fun ChatInput(
     var cameraOutputFile by remember { mutableStateOf<File?>(null) }
     val (_, launchCameraCrop) = useCropLauncher(
         onCroppedImageReady = { croppedUri ->
-            state.addImages(filesManager.createChatFilesByContents(listOf(croppedUri)))
-            dismissExpand()
+            imagePickerScope.launch {
+                state.addImages(filesManager.createChatFilesByContents(listOf(croppedUri)))
+                dismissExpand()
+            }
         },
         onCleanup = {
             cameraOutputFile?.delete()
@@ -228,11 +230,13 @@ fun ChatInput(
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { captureSuccessful ->
         if (captureSuccessful && cameraOutputUri != null) {
             if (settings.displaySetting.skipCropImage) {
-                state.addImages(filesManager.createChatFilesByContents(listOf(cameraOutputUri!!)))
-                cameraOutputFile?.delete()
-                cameraOutputFile = null
-                cameraOutputUri = null
-                dismissExpand()
+                imagePickerScope.launch {
+                    state.addImages(filesManager.createChatFilesByContents(listOf(cameraOutputUri!!)))
+                    cameraOutputFile?.delete()
+                    cameraOutputFile = null
+                    cameraOutputUri = null
+                    dismissExpand()
+                }
             } else {
                 launchCameraCrop(cameraOutputUri!!)
             }
@@ -254,8 +258,10 @@ fun ChatInput(
     var preCropTempFile by remember { mutableStateOf<File?>(null) }
     val (_, launchImageCrop) = useCropLauncher(
         onCroppedImageReady = { croppedUri ->
-            state.addImages(filesManager.createChatFilesByContents(listOf(croppedUri)))
-            dismissExpand()
+            imagePickerScope.launch {
+                state.addImages(filesManager.createChatFilesByContents(listOf(croppedUri)))
+                dismissExpand()
+            }
         },
         onCleanup = {
             preCropTempFile?.delete()
@@ -267,8 +273,10 @@ fun ChatInput(
             if (selectedUris.isNotEmpty()) {
                 Log.d("ImagePickButton", "Selected URIs: $selectedUris")
                 if (settings.displaySetting.skipCropImage) {
-                    state.addImages(filesManager.createChatFilesByContents(selectedUris))
-                    dismissExpand()
+                    imagePickerScope.launch {
+                        state.addImages(filesManager.createChatFilesByContents(selectedUris))
+                        dismissExpand()
+                    }
                 } else {
                     if (selectedUris.size == 1) {
                         val sourceUri = selectedUris.first()
@@ -301,8 +309,10 @@ fun ChatInput(
                             }
                         }
                     } else {
-                        state.addImages(filesManager.createChatFilesByContents(selectedUris))
-                        dismissExpand()
+                        imagePickerScope.launch {
+                            state.addImages(filesManager.createChatFilesByContents(selectedUris))
+                            dismissExpand()
+                        }
                     }
                 }
             } else {
@@ -314,8 +324,10 @@ fun ChatInput(
     val videoPickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { selectedUris ->
             if (selectedUris.isNotEmpty()) {
-                state.addVideos(filesManager.createChatFilesByContents(selectedUris))
-                dismissExpand()
+                imagePickerScope.launch {
+                    state.addVideos(filesManager.createChatFilesByContents(selectedUris))
+                    dismissExpand()
+                }
             }
         }
 
@@ -323,8 +335,10 @@ fun ChatInput(
     val audioPickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { selectedUris ->
             if (selectedUris.isNotEmpty()) {
-                state.addAudios(filesManager.createChatFilesByContents(selectedUris))
-                dismissExpand()
+                imagePickerScope.launch {
+                    state.addAudios(filesManager.createChatFilesByContents(selectedUris))
+                    dismissExpand()
+                }
             }
         }
 
@@ -332,54 +346,56 @@ fun ChatInput(
     val filePickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
             if (uris.isNotEmpty()) {
-                val allowedMimeTypes = setOf(
-                    "text/plain", "text/html", "text/css", "text/javascript", "text/csv", "text/xml",
-                    "application/json", "application/javascript", "application/pdf",
-                    "application/msword",
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    "application/vnd.ms-excel",
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    "application/vnd.ms-powerpoint",
-                    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                    "application/epub+zip"
-                )
-                val documents = uris.mapNotNull { uri ->
-                    val fileName = filesManager.getFileNameFromUri(uri) ?: "file"
-                    val mime = filesManager.getFileMimeType(uri) ?: "text/plain"
-                    val isAllowed = allowedMimeTypes.contains(mime) || mime.startsWith("text/") ||
-                        mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-                        mime == "application/pdf" ||
-                        fileName.endsWith(".txt", ignoreCase = true) ||
-                        fileName.endsWith(".md", ignoreCase = true) ||
-                        fileName.endsWith(".csv", ignoreCase = true) ||
-                        fileName.endsWith(".json", ignoreCase = true) ||
-                        fileName.endsWith(".js", ignoreCase = true) ||
-                        fileName.endsWith(".html", ignoreCase = true) ||
-                        fileName.endsWith(".css", ignoreCase = true) ||
-                        fileName.endsWith(".xml", ignoreCase = true) ||
-                        fileName.endsWith(".py", ignoreCase = true) ||
-                        fileName.endsWith(".java", ignoreCase = true) ||
-                        fileName.endsWith(".kt", ignoreCase = true) ||
-                        fileName.endsWith(".ts", ignoreCase = true) ||
-                        fileName.endsWith(".tsx", ignoreCase = true) ||
-                        fileName.endsWith(".markdown", ignoreCase = true) ||
-                        fileName.endsWith(".mdx", ignoreCase = true) ||
-                        fileName.endsWith(".yml", ignoreCase = true) ||
-                        fileName.endsWith(".yaml", ignoreCase = true)
-                    if (isAllowed) {
-                        val localUri = filesManager.createChatFilesByContents(listOf(uri))[0]
-                        UIMessagePart.Document(url = localUri.toString(), fileName = fileName, mime = mime)
-                    } else {
-                        toaster.show(
-                            context.getString(R.string.chat_input_unsupported_file_type, fileName),
-                            type = ToastType.Error
-                        )
-                        null
+                imagePickerScope.launch {
+                    val allowedMimeTypes = setOf(
+                        "text/plain", "text/html", "text/css", "text/javascript", "text/csv", "text/xml",
+                        "application/json", "application/javascript", "application/pdf",
+                        "application/msword",
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "application/vnd.ms-excel",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        "application/vnd.ms-powerpoint",
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        "application/epub+zip"
+                    )
+                    val documents = uris.mapNotNull { uri ->
+                        val fileName = filesManager.getFileNameFromUri(uri) ?: "file"
+                        val mime = filesManager.getFileMimeType(uri) ?: "text/plain"
+                        val isAllowed = allowedMimeTypes.contains(mime) || mime.startsWith("text/") ||
+                            mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                            mime == "application/pdf" ||
+                            fileName.endsWith(".txt", ignoreCase = true) ||
+                            fileName.endsWith(".md", ignoreCase = true) ||
+                            fileName.endsWith(".csv", ignoreCase = true) ||
+                            fileName.endsWith(".json", ignoreCase = true) ||
+                            fileName.endsWith(".js", ignoreCase = true) ||
+                            fileName.endsWith(".html", ignoreCase = true) ||
+                            fileName.endsWith(".css", ignoreCase = true) ||
+                            fileName.endsWith(".xml", ignoreCase = true) ||
+                            fileName.endsWith(".py", ignoreCase = true) ||
+                            fileName.endsWith(".java", ignoreCase = true) ||
+                            fileName.endsWith(".kt", ignoreCase = true) ||
+                            fileName.endsWith(".ts", ignoreCase = true) ||
+                            fileName.endsWith(".tsx", ignoreCase = true) ||
+                            fileName.endsWith(".markdown", ignoreCase = true) ||
+                            fileName.endsWith(".mdx", ignoreCase = true) ||
+                            fileName.endsWith(".yml", ignoreCase = true) ||
+                            fileName.endsWith(".yaml", ignoreCase = true)
+                        if (isAllowed) {
+                            val localUri = filesManager.createChatFilesByContents(listOf(uri))[0]
+                            UIMessagePart.Document(url = localUri.toString(), fileName = fileName, mime = mime)
+                        } else {
+                            toaster.show(
+                                context.getString(R.string.chat_input_unsupported_file_type, fileName),
+                                type = ToastType.Error
+                            )
+                            null
+                        }
                     }
-                }
-                if (documents.isNotEmpty()) {
-                    state.addFiles(documents)
-                    dismissExpand()
+                    if (documents.isNotEmpty()) {
+                        state.addFiles(documents)
+                        dismissExpand()
+                    }
                 }
             }
         }
@@ -675,6 +691,7 @@ private fun TextInputRow(
 
         var isFocused by remember { mutableStateOf(false) }
         var isFullScreen by remember { mutableStateOf(false) }
+        val textInputScope = rememberCoroutineScope()
         val receiveContentListener = remember(
             settings.displaySetting.pasteLongTextAsFile, settings.displaySetting.pasteLongTextThreshold
         ) {
@@ -684,11 +701,13 @@ private fun TextInputRow(
                         transferableContent.consume { item ->
                             val uri = item.uri
                             if (uri != null) {
-                                state.addImages(
-                                    filesManager.createChatFilesByContents(
-                                        listOf(uri)
+                                textInputScope.launch {
+                                    state.addImages(
+                                        filesManager.createChatFilesByContents(
+                                            listOf(uri)
+                                        )
                                     )
-                                )
+                                }
                             }
                             uri != null
                         }
