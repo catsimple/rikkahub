@@ -28,10 +28,18 @@ jobs:
       - name: Grant Execute Permission
         run: chmod +x ./gradlew
 
-      - name: Build ARM64 Release APK
-        run: ./gradlew app:assembleRelease -x test
-        env:
-          GRADLE_OPTS: "-Xmx2048m"
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > ${{ runner.temp }}/release.keystore
+
+      - name: Build Signed ARM64 APK
+        run: |
+          ./gradlew app:assembleRelease \
+            -Pandroid.injected.signing.store.file=${{ runner.temp }}/release.keystore \
+            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }} \
+            -x test
 
       - name: Upload APK Artifacts
         uses: actions/upload-artifact@v4
