@@ -7,6 +7,12 @@ import me.rerere.hugeicons.stroke.PinOff
 import me.rerere.hugeicons.stroke.Refresh01
 import me.rerere.hugeicons.stroke.Delete01
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -26,6 +32,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,12 +40,15 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -54,6 +64,7 @@ import me.rerere.rikkahub.ui.theme.extendColors
 import me.rerere.rikkahub.utils.toLocalString
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.collections.mutableMapOf
 import kotlin.uuid.Uuid
 
 /**
@@ -83,6 +94,23 @@ fun ColumnScope.ConversationList(
     onPin: (Conversation) -> Unit = {},
     onMoveToAssistant: (Conversation) -> Unit = {}
 ) {
+    val titleGeneratingIds = remember { mutableStateListOf<Uuid>() }
+    val previousTitles = remember { mutableMapOf<Uuid, String>() }
+    LaunchedEffect(conversations.itemCount) {
+        val currentItems = conversations.itemSnapshotList.items
+        val completedIds = mutableListOf<Uuid>()
+        for (item in currentItems) {
+            val conversation = (item as? ConversationListItem.Item)?.conversation ?: continue
+            val previousTitle = previousTitles[conversation.id]
+            if (conversation.id in titleGeneratingIds) {
+                if (previousTitle.isNullOrBlank() && conversation.title.isNotBlank()) {
+                    completedIds.add(conversation.id)
+                }
+            }
+            previousTitles[conversation.id] = conversation.title
+        }
+        titleGeneratingIds.removeAll(completedIds.toSet())
+    }
     var hasScrolledToCurrent by remember(current.id) { mutableStateOf(false) }
 
     LaunchedEffect(current.id, conversations.itemCount, hasScrolledToCurrent) {
@@ -152,9 +180,13 @@ fun ColumnScope.ConversationList(
                         conversation = item.conversation,
                         selected = item.conversation.id == current.id,
                         loading = item.conversation.id in conversationJobs,
+                        isGeneratingTitle = item.conversation.id in titleGeneratingIds,
                         onClick = onClick,
                         onDelete = onDelete,
-                        onRegenerateTitle = onRegenerateTitle,
+                        onRegenerateTitle = {
+                            titleGeneratingIds.add(item.conversation.id)
+                            onRegenerateTitle(it)
+                        },
                         onPin = onPin,
                         onMoveToAssistant = onMoveToAssistant,
                         modifier = Modifier.animateItem()
@@ -222,6 +254,7 @@ private fun ConversationItem(
     conversation: Conversation,
     selected: Boolean,
     loading: Boolean,
+    isGeneratingTitle: Boolean = false,
     modifier: Modifier = Modifier,
     onDelete: (Conversation) -> Unit = {},
     onRegenerateTitle: (Conversation) -> Unit = {},
@@ -257,11 +290,18 @@ private fun ConversationItem(
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = conversation.title.ifBlank { stringResource(id = R.string.chat_page_new_message) },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (isGeneratingTitle) {
+                ShimmerText(
+                    text = conversation.title.ifBlank { stringResource(id = R.string.chat_page_new_message) },
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                Text(
+                    text = conversation.title.ifBlank { stringResource(id = R.string.chat_page_new_message) },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             Spacer(Modifier.weight(1f))
 
             // 置顶图标
@@ -347,4 +387,38 @@ private fun ConversationItem(
             }
         }
     }
+}
+
+@Composable
+private fun ShimmerText(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    val shimmerColors = listOf(
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+    )
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translateAnim by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmer"
+    )
+    val brush = Brush.linearGradient(
+        colors = shimmerColors,
+        start = Offset(translateAnim - 500f, 0f),
+        end = Offset(translateAnim, 0f)
+    )
+    Text(
+        text = text,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier,
+        style = LocalTextStyle.current.copy(brush = brush)
+    )
 }
