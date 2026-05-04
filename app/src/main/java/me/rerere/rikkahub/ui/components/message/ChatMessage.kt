@@ -119,7 +119,6 @@ fun ChatMessage(
     searchQuery: String? = null,
 ) {
     val message = node.messages[node.selectIndex]
-    val highlightQuery = searchQuery?.takeIf { it.isNotBlank() }
     val settings = LocalSettings.current.displaySetting
     val textStyle = LocalTextStyle.current.copy(
         fontSize = LocalTextStyle.current.fontSize * settings.fontSizeRatio,
@@ -173,6 +172,7 @@ fun ChatMessage(
                 onToolApproval = onToolApproval,
                 onToolAnswer = onToolAnswer,
                 onUserMessageClick = if (message.role == MessageRole.USER) onEdit else null,
+                searchQuery = searchQuery,
             )
 
             message.translation?.let { translation ->
@@ -270,7 +270,9 @@ private fun MessagePartsBlock(
     onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)? = null,
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
     onUserMessageClick: (() -> Unit)? = null,
+    searchQuery: String? = null,
 ) {
+    val highlightQuery = searchQuery?.takeIf { it.isNotBlank() }
     val context = LocalContext.current
     val contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
 
