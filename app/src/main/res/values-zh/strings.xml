@@ -719,6 +719,15 @@
   <string name="setting_page_advanced_settings_desc">配置高级文件处理选项</string>
   <string name="setting_page_heic_to_jpg">HEIC 转 JPG</string>
   <string name="setting_page_heic_to_jpg_desc">开启后，导入的 HEIC 图片会通过系统图片解码器自动转换为 JPG</string>
+  <string name="setting_page_image_compress">图片压缩</string>
+  <string name="setting_page_image_compress_desc">发送前压缩图片以减小上传体积</string>
+  <string name="setting_page_image_compress_quality">图片压缩质量</string>
+  <string name="setting_page_image_compress_quality_value">%1$d%%</string>
+  <string name="setting_page_ocr_compress">OCR 图片压缩</string>
+  <string name="setting_page_ocr_compress_desc">OCR 识别前压缩图片以加快处理速度</string>
+  <string name="setting_page_ocr_compress_quality">OCR 压缩质量</string>
+  <string name="setting_page_search_highlight">搜索高亮</string>
+  <string name="setting_page_search_highlight_desc">在搜索结果中高亮显示匹配的关键词</string>
   <string name="setting_page_interaction_notification_settings">互动与通知</string>
   <string name="setting_page_mcp">MCP</string>
   <string name="setting_page_mcp_desc">配置MCP服务器</string>

@@ -6,14 +6,19 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.db.fts.MessageSearchResult
 import me.rerere.rikkahub.data.repository.ConversationRepository
 
 class SearchVM(
     private val conversationRepo: ConversationRepository,
+    private val settingsStore: SettingsStore,
 ) : ViewModel() {
     private val _searchQuery = MutableStateFlow("")
 
@@ -27,6 +32,9 @@ class SearchVM(
         private set
     var rebuildProgress by mutableStateOf(0 to 0)
         private set
+    val searchHighlightEnabled = settingsStore.settingsFlow
+        .map { it.searchHighlightEnabled }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     init {
         viewModelScope.launch {

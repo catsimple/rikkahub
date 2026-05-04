@@ -154,6 +154,62 @@ class FilesManager(
         if (!dir.exists()) {
             dir.mkdirs()
         }
+        val settings = settingsStore.settingsFlow.first()
+        val compressEnabled = settings.imageCompressEnabled
+        val compressQuality = settings.imageCompressQuality
+        uris.forEach { uri ->
+            runCatching {
+                val sourceName = getFileNameFromUri(uri) ?: uri.lastPathSegment ?: "file"
+                val sourceMime = getFileMimeType(uri)
+                val convertedHeic = shouldConvertHeicToJpg(sourceName, sourceMime)
+                val isImage = sourceMime?.startsWith("image/") == true || convertedHeic
+                val resolvedName = if (convertedHeic) sourceName.replaceExtension("jpg") else sourceName
+                val resolvedMime = if (convertedHeic) "image/jpeg" else sourceMime
+                val fileName = buildUuidFileName(displayName = resolvedName, mimeType = resolvedMime)
+                val file = dir.resolve(fileName)
+                if (!file.exists()) {
+                    file.createNewFile()
+                }
+                if (convertedHeic) {
+                    val jpegBytes = decodeImageUriToJpegBytes(uri)
+                        ?: error("Failed to decode HEIC image from $uri")
+                    file.outputStream().use { output ->
+                        output.write(jpegBytes)
+                    }
+                } else if (compressEnabled && isImage) {
+                    val bitmap = BitmapFactory.decodeStream(
+                        context.contentResolver.openInputStream(uri)
+                    ) ?: error("Failed to decode image from $uri")
+                    try {
+                        file.outputStream().use { output ->
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, compressQuality, output)
+                        }
+                    } finally {
+                        bitmap.recycle()
+                    }
+                } else {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                        ?: error("Failed to open input stream for $uri")
+                    inputStream.use { input ->
+                        file.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+                val guessedMime = resolvedMime ?: guessMimeType(file, resolvedName)
+                trackUploadFile(file = file, displayName = resolvedName, mimeType = guessedMime)
+                newUris.add(file.toUri())
+            }.onFailure {
+                it.printStackTrace()
+                Log.e(TAG, "createChatFilesByContents: Failed to save file from $uri", it)
+                Logging.log(
+                    TAG,
+                    "createChatFilesByContents: Failed to save file from $uri ${it.message} | ${it.stackTraceToString()}"
+                )
+            }
+        }
+        return newUris
+    }
         uris.forEach { uri ->
             runCatching {
                 val sourceName = getFileNameFromUri(uri) ?: uri.lastPathSegment ?: "file"

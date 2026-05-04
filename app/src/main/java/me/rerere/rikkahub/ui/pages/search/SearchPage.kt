@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -198,8 +199,9 @@ fun SearchPage(vm: SearchVM = koinViewModel()) {
                                             navController,
                                             chatId = Uuid.parse(result.conversationId),
                                             nodeId = Uuid.parse(result.nodeId),
+                                            searchQuery = if (vm.searchHighlightEnabled.collectAsStateWithLifecycle().value) vm.searchQuery else null,
                                         )
-                                    }
+                                    },
                                 )
                             }
                         }
@@ -214,31 +216,36 @@ fun SearchPage(vm: SearchVM = koinViewModel()) {
 private fun SearchResultItem(
     result: MessageSearchResult,
     onClick: () -> Unit,
+    highlightEnabled: Boolean = true,
 ) {
     val highlightColor = MaterialTheme.colorScheme.tertiaryContainer
     val untitled = stringResource(R.string.search_page_untitled)
     val snippetText = buildAnnotatedString {
         val snippet = result.snippet
-        var index = 0
-        while (index < snippet.length) {
-            val start = snippet.indexOf('[', index)
-            if (start == -1) {
-                append(snippet.substring(index))
-                break
+        if (highlightEnabled) {
+            var index = 0
+            while (index < snippet.length) {
+                val start = snippet.indexOf('[', index)
+                if (start == -1) {
+                    append(snippet.substring(index))
+                    break
+                }
+                if (start > index) {
+                    append(snippet.substring(index, start))
+                }
+                val end = snippet.indexOf(']', start + 1)
+                if (end == -1) {
+                    append(snippet.substring(start))
+                    break
+                }
+                val matched = snippet.substring(start + 1, end)
+                withStyle(SpanStyle(background = highlightColor)) {
+                    append(matched)
+                }
+                index = end + 1
             }
-            if (start > index) {
-                append(snippet.substring(index, start))
-            }
-            val end = snippet.indexOf(']', start + 1)
-            if (end == -1) {
-                append(snippet.substring(start))
-                break
-            }
-            val matched = snippet.substring(start + 1, end)
-            withStyle(SpanStyle(background = highlightColor)) {
-                append(matched)
-            }
-            index = end + 1
+        } else {
+            append(snippet.replace("[", "").replace("]", ""))
         }
     }
     val formattedTime = remember(result.updateAt) {

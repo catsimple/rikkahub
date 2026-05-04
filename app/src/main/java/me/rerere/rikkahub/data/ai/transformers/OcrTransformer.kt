@@ -1,6 +1,8 @@
 package me.rerere.rikkahub.data.ai.transformers
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -89,6 +91,13 @@ object OcrTransformer : InputMessageTransformer, KoinComponent {
         val settings = get<SettingsStore>().settingsFlow.value
         val model = settings.findModelById(settings.ocrModelId) ?: return "[Image]"
         val providerSetting = model.findProvider(settings.providers) ?: return "[Image]"
+
+        val imageUrl = if (settings.ocrCompressEnabled && part.url.startsWith("file:")) {
+            compressImageForOcr(part.url, settings.ocrCompressQuality)
+        } else {
+            part.url
+        }
+
         val provider = get<ProviderManager>().getProviderByType(providerSetting)
         val result = provider.generateText(
             providerSetting = providerSetting,
@@ -96,7 +105,7 @@ object OcrTransformer : InputMessageTransformer, KoinComponent {
                 UIMessage.system(settings.ocrPrompt),
                 UIMessage(
                     role = MessageRole.USER,
-                    parts = listOf(UIMessagePart.Image(part.url))
+                    parts = listOf(UIMessagePart.Image(imageUrl))
                 )
             ),
             params = TextGenerationParams(
@@ -117,5 +126,25 @@ object OcrTransformer : InputMessageTransformer, KoinComponent {
         return ocrResult
     }.getOrElse {
         "[ERROR, OCR failed: $it]"
+    }
+
+    private suspend fun compressImageForOcr(imageUrl: String, quality: Int): String = withContext(Dispatchers.IO) {
+        runCatching {
+            val file = File(imageUrl.removePrefix("file://"))
+            if (!file.exists()) return@runCatching imageUrl
+            val bitmap = BitmapFactory.decodeFile(file.absolutePath) ?: return@runCatching imageUrl
+            try {
+                val compressed = File(file.parent, "ocr_compressed_${file.name}")
+                compressed.outputStream().use { output ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, quality, output)
+                }
+                compressed.toURI().toString()
+            } finally {
+                bitmap.recycle()
+            }
+        }.getOrElse {
+            Log.e(TAG, "compressImageForOcr: Failed to compress $imageUrl", it)
+            imageUrl
+        }
     }
 }

@@ -721,6 +721,15 @@
   <string name="setting_page_advanced_settings_desc">Configure advanced file handling options</string>
   <string name="setting_page_heic_to_jpg">HEIC to JPG</string>
   <string name="setting_page_heic_to_jpg_desc">Automatically convert imported HEIC images to JPG using the system image decoder</string>
+  <string name="setting_page_image_compress">Image Compression</string>
+  <string name="setting_page_image_compress_desc">Compress images before sending to reduce upload size</string>
+  <string name="setting_page_image_compress_quality">Image Compression Quality</string>
+  <string name="setting_page_image_compress_quality_value">%1$d%%</string>
+  <string name="setting_page_ocr_compress">OCR Image Compression</string>
+  <string name="setting_page_ocr_compress_desc">Compress images before OCR to reduce processing time</string>
+  <string name="setting_page_ocr_compress_quality">OCR Compression Quality</string>
+  <string name="setting_page_search_highlight">Search Highlight</string>
+  <string name="setting_page_search_highlight_desc">Highlight matching keywords in search results</string>
   <string name="setting_page_interaction_notification_settings">Interaction &amp;amp; Notifications</string>
   <string name="setting_page_mcp">MCP</string>
   <string name="setting_page_mcp_desc">Configure MCP Servers</string>

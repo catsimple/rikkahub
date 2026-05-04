@@ -116,8 +116,10 @@ fun ChatMessage(
     onClearTranslation: (UIMessage) -> Unit = {},
     onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)? = null,
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
+    searchQuery: String? = null,
 ) {
     val message = node.messages[node.selectIndex]
+    val highlightQuery = searchQuery?.takeIf { it.isNotBlank() }
     val settings = LocalSettings.current.displaySetting
     val textStyle = LocalTextStyle.current.copy(
         fontSize = LocalTextStyle.current.fontSize * settings.fontSizeRatio,
@@ -359,10 +361,13 @@ private fun MessagePartsBlock(
                                 ) {
                                     Column(modifier = Modifier.padding(8.dp)) {
                                         MarkdownBlock(
-                                            content = part.text.replaceRegexes(
-                                                assistant = assistant,
-                                                scope = AssistantAffectScope.USER,
-                                                visual = true,
+                                            content = highlightSearchKeywords(
+                                                part.text.replaceRegexes(
+                                                    assistant = assistant,
+                                                    scope = AssistantAffectScope.USER,
+                                                    visual = true,
+                                                ),
+                                                highlightQuery.orEmpty()
                                             ),
                                             onClickCitation = handleClickCitation
                                         )
@@ -377,10 +382,13 @@ private fun MessagePartsBlock(
                                     ) {
                                         Column(modifier = Modifier.padding(8.dp)) {
                                             MarkdownBlock(
-                                                content = part.text.replaceRegexes(
-                                                    assistant = assistant,
-                                                    scope = AssistantAffectScope.ASSISTANT,
-                                                    visual = true,
+                                                content = highlightSearchKeywords(
+                                                    part.text.replaceRegexes(
+                                                        assistant = assistant,
+                                                        scope = AssistantAffectScope.ASSISTANT,
+                                                        visual = true,
+                                                    ),
+                                                    highlightQuery.orEmpty()
                                                 ),
                                                 onClickCitation = handleClickCitation,
                                             )
@@ -388,10 +396,13 @@ private fun MessagePartsBlock(
                                     }
                                 } else {
                                     MarkdownBlock(
-                                        content = part.text.replaceRegexes(
-                                            assistant = assistant,
-                                            scope = AssistantAffectScope.ASSISTANT,
-                                            visual = true,
+                                        content = highlightSearchKeywords(
+                                            part.text.replaceRegexes(
+                                                assistant = assistant,
+                                                scope = AssistantAffectScope.ASSISTANT,
+                                                visual = true,
+                                            ),
+                                            highlightQuery.orEmpty()
                                         ),
                                         onClickCitation = handleClickCitation,
                                         modifier = Modifier
@@ -605,5 +616,13 @@ private fun MessagePartsBlock(
                 Text(stringResource(R.string.citations_count, annotations.size))
             }
         }
+    }
+}
+
+private fun highlightSearchKeywords(text: String, query: String): String {
+    if (query.isBlank()) return text
+    val escapedQuery = Regex.escape(query)
+    return text.replace(Regex("($escapedQuery)", RegexOption.IGNORE_CASE)) { matchResult ->
+        "<mark>${matchResult.value}</mark>"
     }
 }

@@ -1,19 +1,25 @@
 package me.rerere.rikkahub.ui.pages.setting
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.nestedscroll.nestedscroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -58,6 +64,92 @@ fun SettingAdvancedPage(vm: SettingVM = koinViewModel()) {
                             Switch(
                                 checked = settings.heicToJpg,
                                 onCheckedChange = { vm.updateSettings(settings.copy(heicToJpg = it)) },
+                            )
+                        }
+                    )
+                    item(
+                        headlineContent = { Text(stringResource(R.string.setting_page_image_compress)) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_image_compress_desc)) },
+                        trailingContent = {
+                            Switch(
+                                checked = settings.imageCompressEnabled,
+                                onCheckedChange = {
+                                    vm.updateSettings(settings.copy(imageCompressEnabled = it))
+                                },
+                            )
+                        }
+                    )
+                    if (settings.imageCompressEnabled) {
+                        item(
+                            supportingContent = {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Slider(
+                                        value = settings.imageCompressQuality.toFloat(),
+                                        onValueChange = {
+                                            vm.updateSettings(settings.copy(imageCompressQuality = it.toInt()))
+                                        },
+                                        valueRange = 10f..100f,
+                                        steps = 8,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.setting_page_image_compress_quality_value, settings.imageCompressQuality),
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
+                            }
+                        )
+                    }
+                    item(
+                        headlineContent = { Text(stringResource(R.string.setting_page_ocr_compress)) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_ocr_compress_desc)) },
+                        trailingContent = {
+                            Switch(
+                                checked = settings.ocrCompressEnabled,
+                                onCheckedChange = {
+                                    vm.updateSettings(settings.copy(ocrCompressEnabled = it))
+                                },
+                            )
+                        }
+                    )
+                    if (settings.ocrCompressEnabled) {
+                        item(
+                            supportingContent = {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Slider(
+                                        value = settings.ocrCompressQuality.toFloat(),
+                                        onValueChange = {
+                                            vm.updateSettings(settings.copy(ocrCompressQuality = it.toInt()))
+                                        },
+                                        valueRange = 10f..100f,
+                                        steps = 8,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.setting_page_image_compress_quality_value, settings.ocrCompressQuality),
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
+                            }
+                        )
+                    }
+                    item(
+                        headlineContent = { Text(stringResource(R.string.setting_page_search_highlight)) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_search_highlight_desc)) },
+                        trailingContent = {
+                            Switch(
+                                checked = settings.searchHighlightEnabled,
+                                onCheckedChange = {
+                                    vm.updateSettings(settings.copy(searchHighlightEnabled = it))
+                                },
                             )
                         }
                     )

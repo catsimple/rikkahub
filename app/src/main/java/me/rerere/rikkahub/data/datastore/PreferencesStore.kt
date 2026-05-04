@@ -77,6 +77,11 @@ class SettingsStore(
         val DISPLAY_SETTING = stringPreferencesKey("display_setting")
         val DEVELOPER_MODE = booleanPreferencesKey("developer_mode")
         val HEIC_TO_JPG = booleanPreferencesKey("heic_to_jpg")
+        val IMAGE_COMPRESS_ENABLED = booleanPreferencesKey("image_compress_enabled")
+        val IMAGE_COMPRESS_QUALITY = intPreferencesKey("image_compress_quality")
+        val OCR_COMPRESS_ENABLED = booleanPreferencesKey("ocr_compress_enabled")
+        val OCR_COMPRESS_QUALITY = intPreferencesKey("ocr_compress_quality")
+        val SEARCH_HIGHLIGHT_ENABLED = booleanPreferencesKey("search_highlight_enabled")
 
         // 模型选择
         val ENABLE_WEB_SEARCH = booleanPreferencesKey("enable_web_search")
@@ -186,6 +191,11 @@ class SettingsStore(
                 themeId = preferences[THEME_ID] ?: PresetThemes[0].id,
                 developerMode = preferences[DEVELOPER_MODE] == true,
                 heicToJpg = preferences[HEIC_TO_JPG] == true,
+                imageCompressEnabled = preferences[IMAGE_COMPRESS_ENABLED] == true,
+                imageCompressQuality = preferences[IMAGE_COMPRESS_QUALITY] ?: 80,
+                ocrCompressEnabled = preferences[OCR_COMPRESS_ENABLED] == true,
+                ocrCompressQuality = preferences[OCR_COMPRESS_QUALITY] ?: 80,
+                searchHighlightEnabled = preferences[SEARCH_HIGHLIGHT_ENABLED] != false,
                 displaySetting = JsonInstant.decodeFromString(preferences[DISPLAY_SETTING] ?: "{}"),
                 searchServices = preferences[SEARCH_SERVICES]?.let {
                     JsonInstant.decodeFromString(it)
@@ -334,6 +344,11 @@ class SettingsStore(
             preferences[THEME_ID] = settings.themeId
             preferences[DEVELOPER_MODE] = settings.developerMode
             preferences[HEIC_TO_JPG] = settings.heicToJpg
+            preferences[IMAGE_COMPRESS_ENABLED] = settings.imageCompressEnabled
+            preferences[IMAGE_COMPRESS_QUALITY] = settings.imageCompressQuality
+            preferences[OCR_COMPRESS_ENABLED] = settings.ocrCompressEnabled
+            preferences[OCR_COMPRESS_QUALITY] = settings.ocrCompressQuality
+            preferences[SEARCH_HIGHLIGHT_ENABLED] = settings.searchHighlightEnabled
             preferences[DISPLAY_SETTING] = JsonInstant.encodeToString(settings.displaySetting)
 
             preferences[ENABLE_WEB_SEARCH] = settings.enableWebSearch
@@ -467,6 +482,11 @@ data class Settings(
     val themeId: String = PresetThemes[0].id,
     val developerMode: Boolean = false,
     val heicToJpg: Boolean = false,
+    val imageCompressEnabled: Boolean = false,
+    val imageCompressQuality: Int = 80,
+    val ocrCompressEnabled: Boolean = false,
+    val ocrCompressQuality: Int = 80,
+    val searchHighlightEnabled: Boolean = true,
     val displaySetting: DisplaySetting = DisplaySetting(),
     val enableWebSearch: Boolean = false,
     val favoriteModels: List<Uuid> = emptyList(),
