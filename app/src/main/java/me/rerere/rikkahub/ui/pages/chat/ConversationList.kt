@@ -40,6 +40,7 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -93,6 +94,22 @@ fun ColumnScope.ConversationList(
     onPin: (Conversation) -> Unit = {},
     onMoveToAssistant: (Conversation) -> Unit = {}
 ) {
+    val titleGeneratingIds = remember { mutableStateListOf<Uuid>() }
+    val previousTitles = remember { mutableMapOf<Uuid, String>() }
+    LaunchedEffect(conversations.itemSnapshotList.items) {
+        val completedIds = mutableListOf<Uuid>()
+        for (item in conversations.itemSnapshotList.items) {
+            val conversation = (item as? ConversationListItem.Item)?.conversation ?: continue
+            if (conversation.id in titleGeneratingIds) {
+                val previousTitle = previousTitles[conversation.id]
+                if (previousTitle.isNullOrBlank() && conversation.title.isNotBlank()) {
+                    completedIds.add(conversation.id)
+                }
+            }
+            previousTitles[conversation.id] = conversation.title
+        }
+        titleGeneratingIds.removeAll(completedIds.toSet())
+    }
 
     var hasScrolledToCurrent by remember(current.id) { mutableStateOf(false) }
 
@@ -163,9 +180,13 @@ fun ColumnScope.ConversationList(
                         conversation = item.conversation,
                         selected = item.conversation.id == current.id,
                         loading = item.conversation.id in conversationJobs,
+                        isGeneratingTitle = item.conversation.id in titleGeneratingIds,
                         onClick = onClick,
                         onDelete = onDelete,
-                        onRegenerateTitle = onRegenerateTitle,
+                        onRegenerateTitle = {
+                            titleGeneratingIds.add(item.conversation.id)
+                            onRegenerateTitle(item)
+                        },
                         onPin = onPin,
                         onMoveToAssistant = onMoveToAssistant,
                         modifier = Modifier.animateItem()
@@ -234,6 +255,7 @@ private fun ConversationItem(
     selected: Boolean,
     loading: Boolean,
     isGeneratingTitle: Boolean = false,
+    isGeneratingTitle: Boolean = false,
     modifier: Modifier = Modifier,
     onDelete: (Conversation) -> Unit = {},
     onRegenerateTitle: (Conversation) -> Unit = {},
@@ -241,13 +263,6 @@ private fun ConversationItem(
     onMoveToAssistant: (Conversation) -> Unit = {},
     onClick: (Conversation) -> Unit
 ) {
-    var hasTitle by remember { mutableStateOf(conversation.title.isNotBlank()) }
-    LaunchedEffect(conversation.title) {
-        if (isGeneratingTitle && conversation.title.isNotBlank() && !hasTitle) {
-            hasTitle = true
-        }
-    }
-    val isShimmerActive = isGeneratingTitle && !hasTitle
     val interactionSource = remember { MutableInteractionSource() }
     val backgroundColor = if (selected) {
         MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp)
