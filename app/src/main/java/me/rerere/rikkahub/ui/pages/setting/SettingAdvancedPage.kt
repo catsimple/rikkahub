@@ -53,7 +53,7 @@ fun SettingAdvancedPage(vm: SettingVM = koinViewModel()) {
             contentPadding = contentPadding + PaddingValues(8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            item {
+            item(key = "${settings.imageCompressEnabled}_${settings.ocrCompressEnabled}") {
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
                     title = { Text(stringResource(R.string.setting_page_advanced_settings)) },
