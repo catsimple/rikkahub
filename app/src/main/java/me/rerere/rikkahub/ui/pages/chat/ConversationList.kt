@@ -95,22 +95,6 @@ fun ColumnScope.ConversationList(
     onMoveToAssistant: (Conversation) -> Unit = {}
 ) {
     val titleGeneratingIds = remember { mutableStateListOf<Uuid>() }
-    val previousTitles = remember { mutableMapOf<Uuid, String>() }
-    LaunchedEffect(conversations.itemCount) {
-        val currentItems = conversations.itemSnapshotList.items
-        val completedIds = mutableListOf<Uuid>()
-        for (item in currentItems) {
-            val conversation = (item as? ConversationListItem.Item)?.conversation ?: continue
-            val previousTitle = previousTitles[conversation.id]
-            if (conversation.id in titleGeneratingIds) {
-                if (previousTitle.isNullOrBlank() && conversation.title.isNotBlank()) {
-                    completedIds.add(conversation.id)
-                }
-            }
-            previousTitles[conversation.id] = conversation.title
-        }
-        titleGeneratingIds.removeAll(completedIds.toSet())
-    }
     var hasScrolledToCurrent by remember(current.id) { mutableStateOf(false) }
 
     LaunchedEffect(current.id, conversations.itemCount, hasScrolledToCurrent) {
@@ -262,6 +246,11 @@ private fun ConversationItem(
     onMoveToAssistant: (Conversation) -> Unit = {},
     onClick: (Conversation) -> Unit
 ) {
+    LaunchedEffect(conversation.title) {
+        if (isGeneratingTitle && conversation.title.isNotBlank()) {
+            titleGeneratingIds.remove(conversation.id)
+        }
+    }
     val interactionSource = remember { MutableInteractionSource() }
     val backgroundColor = if (selected) {
         MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp)
