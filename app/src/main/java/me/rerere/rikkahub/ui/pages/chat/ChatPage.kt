@@ -211,6 +211,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
                     errors = errors,
                     onDismissError = { vm.dismissError(it) },
                     onClearAllErrors = { vm.clearAllErrors() },
+                    isGeneratingTitle = isGeneratingTitle,
                 )
             }
         }
@@ -243,6 +244,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
                     errors = errors,
                     onDismissError = { vm.dismissError(it) },
                     onClearAllErrors = { vm.clearAllErrors() },
+                    isGeneratingTitle = isGeneratingTitle,
                 )
             }
             BackHandler(drawerState.isOpen) {
@@ -269,6 +271,7 @@ private fun ChatPageContent(
     errors: List<ChatError>,
     onDismissError: (Uuid) -> Unit,
     onClearAllErrors: () -> Unit,
+    isGeneratingTitle: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
@@ -300,7 +303,7 @@ private fun ChatPageContent(
                         vm.updateTitle(it)
                     },
                     isGeneratingTitle = isGeneratingTitle,
-                )
+                ),
                 )
             },
             bottomBar = {
