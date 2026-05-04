@@ -287,15 +287,10 @@ class FilesManager(
 
     fun observeStorageInfo(): Flow<StorageInfo> = repository.listByFolder(FileFolders.UPLOAD)
         .map { entities ->
-            val uploadDir = context.filesDir.resolve(FileFolders.UPLOAD)
             val totalSize = entities.sumOf { it.sizeBytes }
             val dbFile = context.getDatabasePath("rikkahub.db")
             val dbSize = if (dbFile.exists()) dbFile.length() else 0L
-            StorageInfo(
-                fileCount = entities.size,
-                totalSize = totalSize,
-                dbSize = dbSize
-            )
+            StorageInfo(entities.size, totalSize, dbSize)
         }
 
     suspend fun countOrphanFiles(): Pair<Int, Long> = withContext(Dispatchers.IO) {

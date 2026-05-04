@@ -57,7 +57,9 @@ fun DataCleanupPage(
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
 
-    val storageInfo by filesManager.observeStorageInfo().collectAsStateWithLifecycle()
+    val storageInfo by filesManager.observeStorageInfo().collectAsStateWithLifecycle(
+        initialValue = StorageInfo(0, 0L, 0L)
+    )
 
     var orphanCount by remember { mutableStateOf<Int?>(null) }
     var orphanSize by remember { mutableStateOf<Long?>(null) }
@@ -88,6 +90,8 @@ fun DataCleanupPage(
     val cancel = stringResource(R.string.cancel)
     val confirm = stringResource(R.string.data_cleanup_confirm)
     val daysDialogTitle = stringResource(R.string.data_cleanup_days_dialog_title)
+    val daysResultTemplate = stringResource(R.string.data_cleanup_days_result)
+    val orphanResultTemplate = stringResource(R.string.data_cleanup_orphan_result)
     val totalFilesDesc = stringResource(
         R.string.data_cleanup_total_files_desc,
         storageInfo.fileCount,
@@ -112,12 +116,7 @@ fun DataCleanupPage(
                         showDaysConfirmDialog = false
                         scope.launch {
                             val deleted = filesManager.deleteFilesOlderThan(daysValue.toInt())
-                            toaster.show(
-                                String.format(
-                                    stringResource(R.string.data_cleanup_days_result),
-                                    deleted
-                                )
-                            )
+                            toaster.show(String.format(daysResultTemplate, deleted))
                         }
                     }
                 ) {
@@ -196,10 +195,7 @@ fun DataCleanupPage(
                                         if (count > 0) {
                                             val deleted = filesManager.deleteOrphanFiles()
                                             toaster.show(
-                                                String.format(
-                                                    stringResource(R.string.data_cleanup_orphan_result),
-                                                    deleted
-                                                )
+                                                String.format(orphanResultTemplate, deleted)
                                             )
                                             orphanCount = 0
                                             orphanSize = 0L
