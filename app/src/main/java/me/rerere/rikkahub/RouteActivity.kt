@@ -523,7 +523,6 @@ sealed interface Screen : NavKey {
         val text: String? = null,
         val files: List<String> = emptyList(),
         val nodeId: String? = null,
-        val searchQuery: String? = null,
     ) : Screen
 
     @Serializable

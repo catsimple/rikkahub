@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -81,7 +82,11 @@ fun SettingAdvancedPage(vm: SettingVM = koinViewModel()) {
                     )
                     if (settings.imageCompressEnabled) {
                         item(
-                            headlineContent = { Text(stringResource(R.string.setting_page_image_compress_quality)) },
+                            headlineContent = {
+                                Text(
+                                    stringResource(R.string.setting_page_image_compress_quality)
+                                )
+                            },
                             supportingContent = {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -143,18 +148,7 @@ fun SettingAdvancedPage(vm: SettingVM = koinViewModel()) {
                             }
                         )
                     }
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_page_search_highlight)) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_search_highlight_desc)) },
-                        trailingContent = {
-                            Switch(
-                                checked = settings.searchHighlightEnabled,
-                                onCheckedChange = {
-                                    vm.updateSettings(settings.copy(searchHighlightEnabled = it))
-                                },
-                            )
-                        }
-                    )
+
                 }
             }
         }

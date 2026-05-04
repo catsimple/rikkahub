@@ -195,12 +195,10 @@ fun SearchPage(vm: SearchVM = koinViewModel()) {
                                 SearchResultItem(
                                     result = result,
                                     onClick = {
-                                        val query = if (vm.searchHighlightEnabled.value) vm.searchQuery else null
                                         navigateToChatPage(
                                             navController,
                                             chatId = Uuid.parse(result.conversationId),
                                             nodeId = Uuid.parse(result.nodeId),
-                                            searchQuery = query,
                                         )
                                     },
                                 )
