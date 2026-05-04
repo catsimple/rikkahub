@@ -423,6 +423,10 @@ class RouteActivity : ComponentActivity() {
                                 SettingFilesPage()
                             }
 
+                            entry<Screen.DataCleanup> {
+                                DataCleanupPage()
+                            }
+
                             entry<Screen.SettingWeb> {
                                 SettingWebPage()
                             }
@@ -608,6 +612,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object SettingFiles : Screen
+
+    @Serializable
+    data object DataCleanup : Screen
 
     @Serializable
     data object SettingWeb : Screen

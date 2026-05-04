@@ -20,6 +20,7 @@ import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.rerere.ai.ui.UIMessage
@@ -282,6 +283,73 @@ class FilesManager(
                 }
             }
         }
+    }
+
+    fun observeStorageInfo(): Flow<StorageInfo> = repository.listByFolder(FileFolders.UPLOAD)
+        .map { entities ->
+            val uploadDir = context.filesDir.resolve(FileFolders.UPLOAD)
+            val totalSize = entities.sumOf { it.sizeBytes }
+            val dbFile = context.getDatabasePath("rikkahub.db")
+            val dbSize = if (dbFile.exists()) dbFile.length() else 0L
+            StorageInfo(
+                fileCount = entities.size,
+                totalSize = totalSize,
+                dbSize = dbSize
+            )
+        }
+
+    suspend fun countOrphanFiles(): Pair<Int, Long> = withContext(Dispatchers.IO) {
+        val uploadDir = context.filesDir.resolve(FileFolders.UPLOAD)
+        if (!uploadDir.exists()) return@withContext Pair(0, 0L)
+        val dbPaths = repository.listByFolder(FileFolders.UPLOAD).first().map { it.relativePath }.toSet()
+        val files = uploadDir.listFiles() ?: return@withContext Pair(0, 0L)
+        var count = 0
+        var size = 0L
+        for (file in files) {
+            val relativePath = "${FileFolders.UPLOAD}/${file.name}"
+            if (relativePath !in dbPaths) {
+                count++
+                size += file.length()
+            }
+        }
+        Pair(count, size)
+    }
+
+    suspend fun deleteOrphanFiles(): Int = withContext(Dispatchers.IO) {
+        val uploadDir = context.filesDir.resolve(FileFolders.UPLOAD)
+        if (!uploadDir.exists()) return@withContext 0
+        val dbPaths = repository.listByFolder(FileFolders.UPLOAD).first().map { it.relativePath }.toSet()
+        val files = uploadDir.listFiles() ?: return@withContext 0
+        var deleted = 0
+        for (file in files) {
+            val relativePath = "${FileFolders.UPLOAD}/${file.name}"
+            if (relativePath !in dbPaths) {
+                if (file.delete()) deleted++
+            }
+        }
+        deleted
+    }
+
+    suspend fun countFilesOlderThan(days: Int): Pair<Int, Long> = withContext(Dispatchers.IO) {
+        val cutoff = System.currentTimeMillis() - days.toLong() * 24 * 60 * 60 * 1000
+        val entities = repository.listByFolder(FileFolders.UPLOAD).first()
+        val old = entities.filter { it.createdAt < cutoff }
+        Pair(old.size, old.sumOf { it.sizeBytes })
+    }
+
+    suspend fun deleteFilesOlderThan(days: Int): Int = withContext(Dispatchers.IO) {
+        val cutoff = System.currentTimeMillis() - days.toLong() * 24 * 60 * 60 * 1000
+        val entities = repository.listByFolder(FileFolders.UPLOAD).first()
+        val old = entities.filter { it.createdAt < cutoff }
+        var deleted = 0
+        for (entity in old) {
+            val file = getFile(entity)
+            if (file.delete()) {
+                repository.delete(entity)
+                deleted++
+            }
+        }
+        deleted
     }
 
     suspend fun countChatFiles(): Pair<Int, Long> = withContext(Dispatchers.IO) {
@@ -668,3 +736,9 @@ object FileFolders {
     const val UPLOAD = "upload"
     const val SKILLS = "skills"
 }
+
+data class StorageInfo(
+    val fileCount: Int,
+    val totalSize: Long,
+    val dbSize: Long,
+)
