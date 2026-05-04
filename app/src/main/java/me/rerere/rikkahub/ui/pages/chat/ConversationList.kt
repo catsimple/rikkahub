@@ -95,21 +95,6 @@ fun ColumnScope.ConversationList(
     onMoveToAssistant: (Conversation) -> Unit = {}
 ) {
     val titleGeneratingIds = remember { mutableStateListOf<Uuid>() }
-    val previousTitles = remember { mutableMapOf<Uuid, String>() }
-    LaunchedEffect(conversations.itemSnapshotList.items) {
-        val completedIds = mutableListOf<Uuid>()
-        for (item in conversations.itemSnapshotList.items) {
-            val conversation = (item as? ConversationListItem.Item)?.conversation ?: continue
-            if (conversation.id in titleGeneratingIds) {
-                val previousTitle = previousTitles[conversation.id]
-                if (previousTitle.isNullOrBlank() && conversation.title.isNotBlank()) {
-                    completedIds.add(conversation.id)
-                }
-            }
-            previousTitles[conversation.id] = conversation.title
-        }
-        titleGeneratingIds.removeAll(completedIds.toSet())
-    }
 
     var hasScrolledToCurrent by remember(current.id) { mutableStateOf(false) }
 
@@ -181,6 +166,7 @@ fun ColumnScope.ConversationList(
                         selected = item.conversation.id == current.id,
                         loading = item.conversation.id in conversationJobs,
                         isGeneratingTitle = item.conversation.id in titleGeneratingIds,
+                        titleGeneratingIds = titleGeneratingIds,
                         onClick = onClick,
                         onDelete = onDelete,
                         onRegenerateTitle = {
@@ -255,6 +241,7 @@ private fun ConversationItem(
     selected: Boolean,
     loading: Boolean,
     isGeneratingTitle: Boolean = false,
+    titleGeneratingIds: MutableList<Uuid>,
     modifier: Modifier = Modifier,
     onDelete: (Conversation) -> Unit = {},
     onRegenerateTitle: (Conversation) -> Unit = {},
@@ -262,6 +249,11 @@ private fun ConversationItem(
     onMoveToAssistant: (Conversation) -> Unit = {},
     onClick: (Conversation) -> Unit
 ) {
+    LaunchedEffect(conversation.title) {
+        if (isGeneratingTitle && conversation.title.isNotBlank()) {
+            titleGeneratingIds.remove(conversation.id)
+        }
+    }
     val isShimmerActive = isGeneratingTitle && conversation.title.isBlank()
     val interactionSource = remember { MutableInteractionSource() }
     val backgroundColor = if (selected) {
