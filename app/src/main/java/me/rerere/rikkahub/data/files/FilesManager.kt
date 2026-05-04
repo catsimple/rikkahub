@@ -177,9 +177,11 @@ class FilesManager(
                         output.write(jpegBytes)
                     }
                 } else if (compressEnabled && isImage) {
-                    val bitmap = BitmapFactory.decodeStream(
-                        context.contentResolver.openInputStream(uri)
-                    ) ?: error("Failed to decode image from $uri")
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                        ?: error("Failed to open input stream for $uri")
+                    val bitmap = BitmapFactory.decodeStream(inputStream)
+                        ?: error("Failed to decode image from $uri")
+                    inputStream.close()
                     try {
                         file.outputStream().use { output ->
                             bitmap.compress(Bitmap.CompressFormat.JPEG, compressQuality, output)
