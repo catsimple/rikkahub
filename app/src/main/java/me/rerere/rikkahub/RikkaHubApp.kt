@@ -109,7 +109,7 @@ class RikkaHubApp : Application() {
 
     private fun syncManagedFiles() {
         get<AppScope>().launch(Dispatchers.IO) {
-            runCatching {
+            runCatching<Unit> {
                 get<FilesManager>().syncFolder()
             }.onFailure {
                 Log.e(TAG, "syncManagedFiles failed", it)
