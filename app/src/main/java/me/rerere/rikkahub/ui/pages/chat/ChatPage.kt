@@ -303,7 +303,6 @@ private fun ChatPageContent(
                         vm.updateTitle(it)
                     },
                     isGeneratingTitle = isGeneratingTitle,
-                ),
                 )
             },
             bottomBar = {
