@@ -19,7 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedscroll
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -81,6 +81,7 @@ fun SettingAdvancedPage(vm: SettingVM = koinViewModel()) {
                     )
                     if (settings.imageCompressEnabled) {
                         item(
+                            headlineContent = { Text(stringResource(R.string.setting_page_image_compress_quality)) },
                             supportingContent = {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -118,6 +119,7 @@ fun SettingAdvancedPage(vm: SettingVM = koinViewModel()) {
                     )
                     if (settings.ocrCompressEnabled) {
                         item(
+                            headlineContent = { Text(stringResource(R.string.setting_page_ocr_compress_quality)) },
                             supportingContent = {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
