@@ -11,9 +11,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -30,7 +31,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Alert01
 import me.rerere.hugeicons.stroke.Database02
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.rikkahub.R
@@ -74,38 +75,55 @@ fun DataCleanupPage(
     var pendingCleanupCount by remember { mutableStateOf(0) }
     var pendingCleanupSize by remember { mutableStateOf(0L) }
 
+    val dataCleanupTitle = stringResource(R.string.data_cleanup_title)
+    val storageTitle = stringResource(R.string.data_cleanup_storage_title)
+    val totalFiles = stringResource(R.string.data_cleanup_total_files)
+    val dbSize = stringResource(R.string.data_cleanup_db_size)
+    val orphanTitle = stringResource(R.string.data_cleanup_orphan_title)
+    val orphanFiles = stringResource(R.string.data_cleanup_orphan_files)
+    val calculating = stringResource(R.string.calculating)
+    val orphanAction = stringResource(R.string.data_cleanup_orphan_action)
+    val orphanNone = stringResource(R.string.data_cleanup_orphan_none)
+    val daysTitle = stringResource(R.string.data_cleanup_days_title)
+    val daysAction = stringResource(R.string.data_cleanup_days_action)
+    val daysNone = stringResource(R.string.data_cleanup_days_none)
+    val cancel = stringResource(R.string.cancel)
+    val confirm = stringResource(R.string.data_cleanup_confirm)
+    val daysDialogTitle = stringResource(R.string.data_cleanup_days_dialog_title)
+
+    val totalFilesDesc = stringResource(
+        R.string.data_cleanup_total_files_desc,
+        storageInfo.fileCount,
+        formatBytes(storageInfo.totalSize)
+    )
+
     if (showDaysConfirmDialog) {
+        val dialogMsg = stringResource(
+            R.string.data_cleanup_days_dialog_message,
+            daysValue.toInt(),
+            formatBytes(pendingCleanupSize),
+            pendingCleanupCount
+        )
         AlertDialog(
             onDismissRequest = { showDaysConfirmDialog = false },
-            title = { Text(stringResource(R.string.data_cleanup_days_dialog_title)) },
-            text = {
-                Text(
-                    stringResource(
-                        R.string.data_cleanup_days_dialog_message,
-                        daysValue.toInt(),
-                        formatBytes(pendingCleanupSize),
-                        pendingCleanupCount
-                    )
-                )
-            },
+            title = { Text(daysDialogTitle) },
+            text = { Text(dialogMsg) },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showDaysConfirmDialog = false
                         scope.launch {
                             val deleted = filesManager.deleteFilesOlderThan(daysValue.toInt())
-                            toaster.show(
-                                stringResource(R.string.data_cleanup_days_result, deleted)
-                            )
+                            toaster.show(stringResource(R.string.data_cleanup_days_result, deleted))
                         }
                     }
                 ) {
-                    Text(stringResource(R.string.data_cleanup_confirm))
+                    Text(confirm)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDaysConfirmDialog = false }) {
-                    Text(stringResource(R.string.cancel))
+                    Text(cancel)
                 }
             }
         )
@@ -114,7 +132,7 @@ fun DataCleanupPage(
     Scaffold(
         topBar = {
             androidx.compose.material3.LargeFlexibleTopAppBar(
-                title = { Text(stringResource(R.string.data_cleanup_title)) },
+                title = { Text(dataCleanupTitle) },
                 navigationIcon = { BackButton() },
                 scrollBehavior = scrollBehavior,
                 colors = CustomColors.topBarColors,
@@ -125,12 +143,17 @@ fun DataCleanupPage(
     ) { contentPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = contentPadding + PaddingValues(16.dp),
+            contentPadding = PaddingValues(
+                start = contentPadding.calculateStartPadding(androidx.compose.ui.unit.LayoutDirection.Ltr) + 16.dp,
+                end = contentPadding.calculateEndPadding(androidx.compose.ui.unit.LayoutDirection.Ltr) + 16.dp,
+                top = contentPadding.calculateTopPadding() + 16.dp,
+                bottom = contentPadding.calculateBottomPadding() + 16.dp,
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                androidx.compose.material3.Card(
-                    shape = RoundedCornerShape(20.dp),
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = CustomColors.listItemColors.containerColor),
                 ) {
                     Column(
                         modifier = Modifier
@@ -139,7 +162,7 @@ fun DataCleanupPage(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = stringResource(R.string.data_cleanup_storage_title),
+                            text = storageTitle,
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -148,33 +171,23 @@ fun DataCleanupPage(
                             leadingContent = {
                                 Icon(HugeIcons.Database02, null, Modifier.size(24.dp))
                             },
-                            headlineContent = { Text(stringResource(R.string.data_cleanup_total_files)) },
-                            supportingContent = {
-                                Text(
-                                    stringResource(
-                                        R.string.data_cleanup_total_files_desc,
-                                        storageInfo.fileCount,
-                                        formatBytes(storageInfo.totalSize)
-                                    )
-                                )
-                            }
+                            headlineContent = { Text(totalFiles) },
+                            supportingContent = { Text(totalFilesDesc) }
                         )
                         ListItem(
                             leadingContent = {
                                 Icon(HugeIcons.Database02, null, Modifier.size(24.dp))
                             },
-                            headlineContent = { Text(stringResource(R.string.data_cleanup_db_size)) },
-                            supportingContent = {
-                                Text(formatBytes(storageInfo.dbSize))
-                            }
+                            headlineContent = { Text(dbSize) },
+                            supportingContent = { Text(formatBytes(storageInfo.dbSize)) }
                         )
                     }
                 }
             }
 
             item {
-                androidx.compose.material3.Card(
-                    shape = RoundedCornerShape(20.dp),
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = CustomColors.listItemColors.containerColor),
                 ) {
                     Column(
                         modifier = Modifier
@@ -183,7 +196,7 @@ fun DataCleanupPage(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = stringResource(R.string.data_cleanup_orphan_title),
+                            text = orphanTitle,
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -192,10 +205,10 @@ fun DataCleanupPage(
                             leadingContent = {
                                 Icon(HugeIcons.Delete01, null, Modifier.size(24.dp))
                             },
-                            headlineContent = { Text(stringResource(R.string.data_cleanup_orphan_files)) },
+                            headlineContent = { Text(orphanFiles) },
                             supportingContent = {
                                 if (orphanCount == null) {
-                                    Text(stringResource(R.string.calculating))
+                                    Text(calculating)
                                 } else {
                                     Text(
                                         stringResource(
@@ -222,13 +235,13 @@ fun DataCleanupPage(
                                                 orphanCount = 0
                                                 orphanSize = 0L
                                             } else {
-                                                toaster.show(stringResource(R.string.data_cleanup_orphan_none))
+                                                toaster.show(orphanNone)
                                             }
                                         }
                                     },
                                     enabled = orphanCount != null && (orphanCount ?: 0) > 0
                                 ) {
-                                    Text(stringResource(R.string.data_cleanup_orphan_action))
+                                    Text(orphanAction)
                                 }
                             }
                         )
@@ -237,8 +250,8 @@ fun DataCleanupPage(
             }
 
             item {
-                androidx.compose.material3.Card(
-                    shape = RoundedCornerShape(20.dp),
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = CustomColors.listItemColors.containerColor),
                 ) {
                     Column(
                         modifier = Modifier
@@ -247,7 +260,7 @@ fun DataCleanupPage(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = stringResource(R.string.data_cleanup_days_title),
+                            text = daysTitle,
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -288,12 +301,12 @@ fun DataCleanupPage(
                                                 pendingCleanupSize = size
                                                 showDaysConfirmDialog = true
                                             } else {
-                                                toaster.show(stringResource(R.string.data_cleanup_days_none))
+                                                toaster.show(daysNone)
                                             }
                                         }
                                     }
                                 ) {
-                                    Text(stringResource(R.string.data_cleanup_days_action))
+                                    Text(daysAction)
                                 }
                             }
                         )
