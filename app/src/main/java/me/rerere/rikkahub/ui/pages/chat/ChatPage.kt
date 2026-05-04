@@ -21,6 +21,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PermanentNavigationDrawer
@@ -35,8 +36,11 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -294,7 +298,9 @@ private fun ChatPageContent(
                     },
                     onUpdateTitle = {
                         vm.updateTitle(it)
-                    }
+                    },
+                    isGeneratingTitle = isGeneratingTitle,
+                )
                 )
             },
             bottomBar = {
@@ -458,7 +464,8 @@ private fun TopBar(
     previewMode: Boolean,
     onClickMenu: () -> Unit,
     onNewChat: () -> Unit,
-    onUpdateTitle: (String) -> Unit
+    onUpdateTitle: (String) -> Unit,
+    isGeneratingTitle: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
@@ -584,10 +591,11 @@ private fun ShimmerText(
     style: TextStyle = LocalTextStyle.current,
     modifier: Modifier = Modifier
 ) {
+    val baseColor = style.color.takeIf { it != Color.Unspecified } ?: MaterialTheme.colorScheme.onSurface
     val shimmerColors = listOf(
-        style.color.copy(alpha = 0.3f),
-        style.color.copy(alpha = 0.7f),
-        style.color.copy(alpha = 0.3f),
+        baseColor.copy(alpha = 0.3f),
+        baseColor.copy(alpha = 0.7f),
+        baseColor.copy(alpha = 0.3f),
     )
     val transition = rememberInfiniteTransition(label = "shimmer")
     val translateAnim by transition.animateFloat(
