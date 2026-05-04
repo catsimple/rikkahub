@@ -117,7 +117,7 @@ fun DataCleanupPage(
                         scope.launch {
                             val deleted = filesManager.deleteFilesOlderThan(daysValue.toInt())
                             toaster.show(
-                                daysResultMsg.replace("%1$d", deleted.toString())
+                                String.format(daysResultMsg, deleted)
                             )
                         }
                     }
@@ -231,7 +231,7 @@ fun DataCleanupPage(
                                             if (count > 0) {
                                                 val deleted = filesManager.deleteOrphanFiles()
                                                 toaster.show(
-                                                    orphanResultMsg.replace("%1$d", deleted.toString())
+                                                    String.format(orphanResultMsg, deleted)
                                                 )
                                                 orphanCount = 0
                                                 orphanSize = 0L
