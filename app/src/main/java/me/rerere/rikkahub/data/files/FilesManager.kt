@@ -154,10 +154,9 @@ class FilesManager(
         if (!dir.exists()) {
             dir.mkdirs()
         }
-        val settings = settingsStore.settingsFlow.first()
+        val settings = settingsStore.settingsFlow.value
         val compressEnabled = settings.imageCompressEnabled
         val compressQuality = settings.imageCompressQuality
-        Log.d(TAG, "createChatFilesByContents: compressEnabled=$compressEnabled, compressQuality=$compressQuality")
         uris.forEach { uri ->
             runCatching {
                 val sourceName = getFileNameFromUri(uri) ?: uri.lastPathSegment ?: "file"
@@ -183,8 +182,7 @@ class FilesManager(
                     ) ?: error("Failed to decode image from $uri")
                     try {
                         file.outputStream().use { output ->
-                            val success = bitmap.compress(Bitmap.CompressFormat.JPEG, compressQuality, output)
-                            Log.d(TAG, "createChatFilesByContents: compressed quality=$compressQuality, success=$success, fileSize=${file.length()}")
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, compressQuality, output)
                         }
                     } finally {
                         bitmap.recycle()
@@ -197,7 +195,7 @@ class FilesManager(
                             input.copyTo(output)
                         }
                     }
-                    Log.d(TAG, "createChatFilesByContents: copied without compression, fileSize=${file.length()}")
+
                 }
                 val guessedMime = resolvedMime ?: guessMimeType(file, resolvedName)
                 trackUploadFile(file = file, displayName = resolvedName, mimeType = guessedMime)
@@ -557,6 +555,11 @@ class FilesManager(
             }.onFailure {
                 Log.w(TAG, "getFileMimeType: Failed to resolve MIME for $uri", it)
             }.getOrNull()
+            "file" -> {
+                val name = uri.lastPathSegment ?: return null
+                val ext = name.substringAfterLast('.', "").lowercase()
+                MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+            }
             else -> null
         }
     }
