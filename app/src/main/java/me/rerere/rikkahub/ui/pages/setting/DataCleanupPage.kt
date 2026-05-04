@@ -30,9 +30,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedscroll
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Alert01
@@ -45,6 +46,7 @@ import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.theme.CustomColors
+import me.rerere.rikkahub.utils.plus
 import org.koin.compose.koinInject
 
 @Composable
@@ -55,9 +57,7 @@ fun DataCleanupPage(
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
 
-    val storageInfo by filesManager.observeStorageInfo().collectAsStateWithLifecycle(
-        initialValue = StorageInfo(0, 0L, 0L)
-    )
+    val storageInfo by filesManager.observeStorageInfo().collectAsStateWithLifecycle()
 
     var orphanCount by remember { mutableStateOf<Int?>(null) }
     var orphanSize by remember { mutableStateOf<Long?>(null) }

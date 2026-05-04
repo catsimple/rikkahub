@@ -185,7 +185,7 @@ fun ColumnScope.ConversationList(
                         onDelete = onDelete,
                         onRegenerateTitle = {
                             titleGeneratingIds.add(item.conversation.id)
-                            onRegenerateTitle(item)
+                            onRegenerateTitle(item.conversation)
                         },
                         onPin = onPin,
                         onMoveToAssistant = onMoveToAssistant,
@@ -255,7 +255,6 @@ private fun ConversationItem(
     selected: Boolean,
     loading: Boolean,
     isGeneratingTitle: Boolean = false,
-    isGeneratingTitle: Boolean = false,
     modifier: Modifier = Modifier,
     onDelete: (Conversation) -> Unit = {},
     onRegenerateTitle: (Conversation) -> Unit = {},
@@ -263,6 +262,7 @@ private fun ConversationItem(
     onMoveToAssistant: (Conversation) -> Unit = {},
     onClick: (Conversation) -> Unit
 ) {
+    val isShimmerActive = isGeneratingTitle && conversation.title.isBlank()
     val interactionSource = remember { MutableInteractionSource() }
     val backgroundColor = if (selected) {
         MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp)
