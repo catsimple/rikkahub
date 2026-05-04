@@ -345,7 +345,7 @@ class FilesManager(
         for (entity in old) {
             val file = getFile(entity)
             if (file.delete()) {
-                repository.delete(entity)
+                repository.deleteById(entity.id)
                 deleted++
             }
         }

@@ -40,7 +40,6 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -94,7 +93,7 @@ fun ColumnScope.ConversationList(
     onPin: (Conversation) -> Unit = {},
     onMoveToAssistant: (Conversation) -> Unit = {}
 ) {
-    val titleGeneratingIds = remember { mutableStateListOf<Uuid>() }
+
     var hasScrolledToCurrent by remember(current.id) { mutableStateOf(false) }
 
     LaunchedEffect(current.id, conversations.itemCount, hasScrolledToCurrent) {
@@ -167,10 +166,7 @@ fun ColumnScope.ConversationList(
                         isGeneratingTitle = item.conversation.id in titleGeneratingIds,
                         onClick = onClick,
                         onDelete = onDelete,
-                        onRegenerateTitle = {
-                            titleGeneratingIds.add(item.conversation.id)
-                            onRegenerateTitle(it)
-                        },
+                        onRegenerateTitle = onRegenerateTitle,
                         onPin = onPin,
                         onMoveToAssistant = onMoveToAssistant,
                         modifier = Modifier.animateItem()
@@ -246,11 +242,13 @@ private fun ConversationItem(
     onMoveToAssistant: (Conversation) -> Unit = {},
     onClick: (Conversation) -> Unit
 ) {
+    var hasTitle by remember { mutableStateOf(conversation.title.isNotBlank()) }
     LaunchedEffect(conversation.title) {
-        if (isGeneratingTitle && conversation.title.isNotBlank()) {
-            titleGeneratingIds.remove(conversation.id)
+        if (isGeneratingTitle && conversation.title.isNotBlank() && !hasTitle) {
+            hasTitle = true
         }
     }
+    val isShimmerActive = isGeneratingTitle && !hasTitle
     val interactionSource = remember { MutableInteractionSource() }
     val backgroundColor = if (selected) {
         MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp)
@@ -279,7 +277,7 @@ private fun ConversationItem(
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isGeneratingTitle) {
+            if (isShimmerActive) {
                 ShimmerText(
                     text = conversation.title.ifBlank { stringResource(id = R.string.chat_page_new_message) },
                     modifier = Modifier.weight(1f)
