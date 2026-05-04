@@ -84,6 +84,8 @@ fun DataCleanupPage(
     val calculating = stringResource(R.string.calculating)
     val orphanAction = stringResource(R.string.data_cleanup_orphan_action)
     val orphanNone = stringResource(R.string.data_cleanup_orphan_none)
+    val orphanResultMsg = stringResource(R.string.data_cleanup_orphan_result, 0)
+    val daysResultMsg = stringResource(R.string.data_cleanup_days_result, 0)
     val daysTitle = stringResource(R.string.data_cleanup_days_title)
     val daysAction = stringResource(R.string.data_cleanup_days_action)
     val daysNone = stringResource(R.string.data_cleanup_days_none)
@@ -114,7 +116,9 @@ fun DataCleanupPage(
                         showDaysConfirmDialog = false
                         scope.launch {
                             val deleted = filesManager.deleteFilesOlderThan(daysValue.toInt())
-                            toaster.show(stringResource(R.string.data_cleanup_days_result, deleted))
+                            toaster.show(
+                                daysResultMsg.replace("%1$d", deleted.toString())
+                            )
                         }
                     }
                 ) {
@@ -144,8 +148,8 @@ fun DataCleanupPage(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                start = contentPadding.calculateStartPadding(androidx.compose.ui.unit.LayoutDirection.Ltr) + 16.dp,
-                end = contentPadding.calculateEndPadding(androidx.compose.ui.unit.LayoutDirection.Ltr) + 16.dp,
+                start = 16.dp,
+                end = 16.dp,
                 top = contentPadding.calculateTopPadding() + 16.dp,
                 bottom = contentPadding.calculateBottomPadding() + 16.dp,
             ),
@@ -227,10 +231,7 @@ fun DataCleanupPage(
                                             if (count > 0) {
                                                 val deleted = filesManager.deleteOrphanFiles()
                                                 toaster.show(
-                                                    stringResource(
-                                                        R.string.data_cleanup_orphan_result,
-                                                        deleted
-                                                    )
+                                                    orphanResultMsg.replace("%1$d", deleted.toString())
                                                 )
                                                 orphanCount = 0
                                                 orphanSize = 0L
