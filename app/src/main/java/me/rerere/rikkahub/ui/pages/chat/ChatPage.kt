@@ -6,6 +6,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerState
@@ -13,6 +19,7 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
@@ -33,6 +40,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -89,6 +98,15 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
     val loadingJob by vm.conversationJob.collectAsStateWithLifecycle()
     val processingStatus by vm.processingStatus.collectAsStateWithLifecycle()
     val currentChatModel by vm.currentChatModel.collectAsStateWithLifecycle()
+
+    var isGeneratingTitle by remember { mutableStateOf(false) }
+    LaunchedEffect(loadingJob, conversation.title) {
+        if (loadingJob != null && conversation.title.isBlank()) {
+            isGeneratingTitle = true
+        } else if (conversation.title.isNotBlank()) {
+            isGeneratingTitle = false
+        }
+    }
     val enableWebSearch by vm.enableWebSearch.collectAsStateWithLifecycle()
     val errors by vm.errors.collectAsStateWithLifecycle()
 
@@ -477,12 +495,19 @@ private fun TopBar(
                     val assistant = settings.getCurrentAssistant()
                     val model = settings.getCurrentChatModel()
                     val provider = model?.findProvider(providers = settings.providers, checkOverwrite = false)
-                    Text(
-                        text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
-                        maxLines = 1,
-                        style = MaterialTheme.typography.bodyMedium,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    if (isGeneratingTitle) {
+                        ShimmerText(
+                            text = stringResource(R.string.chat_page_new_chat),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    } else {
+                        Text(
+                            text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
+                            maxLines = 1,
+                            style = MaterialTheme.typography.bodyMedium,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                     if (model != null && provider != null) {
                         Text(
                             text = "${assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }} / ${model.displayName} (${provider.name})",
@@ -551,4 +576,39 @@ private fun TopBar(
             }
         )
     }
+}
+
+@Composable
+private fun ShimmerText(
+    text: String,
+    style: TextStyle = LocalTextStyle.current,
+    modifier: Modifier = Modifier
+) {
+    val shimmerColors = listOf(
+        style.color.copy(alpha = 0.3f),
+        style.color.copy(alpha = 0.7f),
+        style.color.copy(alpha = 0.3f),
+    )
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translateAnim by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmer"
+    )
+    val brush = Brush.linearGradient(
+        colors = shimmerColors,
+        start = Offset(translateAnim - 500f, 0f),
+        end = Offset(translateAnim, 0f)
+    )
+    Text(
+        text = text,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier,
+        style = style.copy(brush = brush)
+    )
 }
