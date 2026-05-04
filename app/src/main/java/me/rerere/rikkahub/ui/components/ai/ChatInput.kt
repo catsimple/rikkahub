@@ -261,6 +261,7 @@ fun ChatInput(
             imagePickerScope.launch {
                 state.addImages(filesManager.createChatFilesByContents(listOf(croppedUri)))
                 dismissExpand()
+                croppedUri.toFile().delete()
             }
         },
         onCleanup = {
@@ -1220,11 +1221,12 @@ private fun useCropLauncher(
             cropOutputUri?.let { croppedUri ->
                 onCroppedImageReady(croppedUri)
             }
+        } else {
+            // Clean up crop output file only when crop was cancelled
+            cropOutputUri?.toFile()?.delete()
+            onCleanup?.invoke()
         }
-        // Clean up crop output file
-        cropOutputUri?.toFile()?.delete()
         cropOutputUri = null
-        onCleanup?.invoke()
     }
 
     val launchCrop: (Uri) -> Unit = { sourceUri ->
