@@ -163,14 +163,9 @@ class ChatVM(
         }
     }
 
-    // Update checker
-    val updateState = if (settings.value.autoCheckUpdate) {
+    // Update checker - always check, but controlled by UpdateCard via settings
+    val updateState =
         updateChecker.checkUpdate().stateIn(viewModelScope, SharingStarted.Eagerly, UiState.Loading)
-    } else {
-        kotlinx.coroutines.flow.flow {
-            emit(UiState.Success(null))
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, UiState.Success(null))
-    }
 
     /**
      * 处理消息发送

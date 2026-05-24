@@ -53,8 +53,12 @@ import kotlin.time.toJavaInstant
 @Composable
 fun UpdateCard(vm: ChatVM) {
     val state by vm.updateState.collectAsStateWithLifecycle()
+    val settings by vm.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val toaster = LocalToaster.current
+
+    if (!settings.autoCheckUpdate) return
+
     state.onError {
         Card {
             Column(
