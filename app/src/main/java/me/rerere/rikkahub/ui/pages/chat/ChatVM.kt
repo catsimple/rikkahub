@@ -16,6 +16,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -163,8 +164,13 @@ class ChatVM(
     }
 
     // Update checker
-    val updateState =
+    val updateState = if (settings.value.autoCheckUpdate) {
         updateChecker.checkUpdate().stateIn(viewModelScope, SharingStarted.Eagerly, UiState.Loading)
+    } else {
+        kotlinx.coroutines.flow.flow {
+            emit(UiState.Success(null))
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, UiState.Success(null))
+    }
 
     /**
      * 处理消息发送
