@@ -724,6 +724,8 @@
   <string name="data_cleanup_days_dialog_message">This will delete %1$d files (%2$s) older than %1$d days. This action cannot be undone.</string>
   <string name="data_cleanup_days_result">Cleaned %1$d files</string>
   <string name="data_cleanup_confirm">Confirm</string>
+  <string name="setting_page_auto_check_update">Auto Check Update</string>
+  <string name="setting_page_auto_check_update_desc">Automically check for app updates on startup</string>
   <string name="setting_page_default_model">Default Model and Prompt</string>
   <string name="setting_page_default_model_desc">Set default models for each feature</string>
   <string name="setting_page_display_setting">Display Settings</string>

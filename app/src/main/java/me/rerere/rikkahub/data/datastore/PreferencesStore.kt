@@ -81,7 +81,7 @@ class SettingsStore(
         val IMAGE_COMPRESS_QUALITY = intPreferencesKey("image_compress_quality")
         val OCR_COMPRESS_ENABLED = booleanPreferencesKey("ocr_compress_enabled")
         val OCR_COMPRESS_QUALITY = intPreferencesKey("ocr_compress_quality")
-
+        val AUTO_CHECK_UPDATE = booleanPreferencesKey("auto_check_update")
 
         // 模型选择
         val ENABLE_WEB_SEARCH = booleanPreferencesKey("enable_web_search")
@@ -195,6 +195,7 @@ class SettingsStore(
                 imageCompressQuality = preferences[IMAGE_COMPRESS_QUALITY] ?: 80,
                 ocrCompressEnabled = preferences[OCR_COMPRESS_ENABLED] == true,
                 ocrCompressQuality = preferences[OCR_COMPRESS_QUALITY] ?: 80,
+                autoCheckUpdate = preferences[AUTO_CHECK_UPDATE] != false,
 
                 displaySetting = JsonInstant.decodeFromString(preferences[DISPLAY_SETTING] ?: "{}"),
                 searchServices = preferences[SEARCH_SERVICES]?.let {
@@ -348,6 +349,7 @@ class SettingsStore(
             preferences[IMAGE_COMPRESS_QUALITY] = settings.imageCompressQuality
             preferences[OCR_COMPRESS_ENABLED] = settings.ocrCompressEnabled
             preferences[OCR_COMPRESS_QUALITY] = settings.ocrCompressQuality
+            preferences[AUTO_CHECK_UPDATE] = settings.autoCheckUpdate
 
             preferences[DISPLAY_SETTING] = JsonInstant.encodeToString(settings.displaySetting)
 
@@ -486,6 +488,7 @@ data class Settings(
     val imageCompressQuality: Int = 80,
     val ocrCompressEnabled: Boolean = false,
     val ocrCompressQuality: Int = 80,
+    val autoCheckUpdate: Boolean = true,
     val displaySetting: DisplaySetting = DisplaySetting(),
     val enableWebSearch: Boolean = false,
     val favoriteModels: List<Uuid> = emptyList(),

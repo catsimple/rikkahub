@@ -68,6 +68,7 @@ import me.rerere.rikkahub.data.files.FilesManager
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.Select
+import me.rerere.rikkahub.ui.components.ui.Switch
 import me.rerere.rikkahub.ui.components.ui.icons.DiscordIcon
 import me.rerere.rikkahub.ui.components.ui.icons.TencentQQIcon
 import me.rerere.rikkahub.ui.context.LocalNavController
@@ -213,6 +214,19 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                         leadingContent = { Icon(HugeIcons.Settings03, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_advanced_settings_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_advanced_settings)) },
+                    )
+                    item(
+                        leadingContent = { Icon(HugeIcons.Settings03, null) },
+                        trailingContent = {
+                            Switch(
+                                checked = settings.autoCheckUpdate,
+                                onCheckedChange = {
+                                    vm.updateSettings(settings.copy(autoCheckUpdate = it))
+                                },
+                            )
+                        },
+                        supportingContent = { Text(stringResource(R.string.setting_page_auto_check_update_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_auto_check_update)) },
                     )
                 }
             }

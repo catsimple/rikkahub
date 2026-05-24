@@ -722,6 +722,8 @@
   <string name="data_cleanup_days_dialog_message">这将删除 %1$d 个文件（%2$s），时间超过 %1$d 天。此操作不可撤销。</string>
   <string name="data_cleanup_days_result">已清理 %1$d 个文件</string>
   <string name="data_cleanup_confirm">确认</string>
+  <string name="setting_page_auto_check_update">自动检查更新</string>
+  <string name="setting_page_auto_check_update_desc">启动时自动检查应用更新</string>
   <string name="setting_page_default_model">默认模型和提示词</string>
   <string name="setting_page_default_model_desc">设置各个功能的默认模型</string>
   <string name="setting_page_display_setting">显示设置</string>
